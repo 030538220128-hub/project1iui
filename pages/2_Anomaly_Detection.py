@@ -278,10 +278,11 @@ def analyze_listing(data):
         data["dien_tich_m2"]
     )
 
+    safe_dien_tich = max(dien_tich, 0.001)
     gia_m2 = (
         gia_ty
         * 1000
-        / dien_tich
+        / safe_dien_tich
     )
 
     market = get_market_defaults(

@@ -29,7 +29,9 @@ class PageNavigationTests(unittest.TestCase):
             self.assertEqual([e.value for e in app.error], [], page)
             if page == PRICE:
                 app.button[0].click().run()
-                self.assertIn("Giá dự đoán", [m.label for m in app.metric])
+                price_metrics = {m.label: m.value for m in app.metric}
+                self.assertIn("Giá dự đoán", price_metrics)
+                self.assertNotEqual(price_metrics["Giá dự đoán"], "0.00 tỷ VNĐ")
             else:
                 app.radio[0].set_value("✍️ Kiểm tra tin mới").run()
                 for field in app.selectbox:

@@ -419,10 +419,11 @@ if submitted:
 
     with c2:
 
+        safe_area = max(float(dien_tich), 0.001)
         price_m2 = (
             prediction
             * 1000
-            / dien_tich
+            / safe_area
         )
 
         st.metric(
