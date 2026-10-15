@@ -4,8 +4,9 @@
 
 ## Giới thiệu tính năng
 
-1. **House Price Prediction**: Dự đoán giá bán bất động sản (tỷ VNĐ) và đơn giá (triệu VNĐ/m²) dựa trên 16 đặc trưng vị trí, kích thước, kết cấu và pháp lý sử dụng mô hình Pipeline XGBoost Regressor.
-2. **Anomaly Detection**: Phát hiện tin đăng bất thường (quá rẻ, quá đắt, bất thường cấu trúc) dựa trên mô hình lai 4 tín hiệu (Residual-Z, P10-P90, Historical Min/Max, Isolation Forest) kèm nhãn giải thích XAI minh bạch.
+1. **House Price Prediction (`1_House_Price_Prediction.py`)**: Dự đoán giá bán bất động sản (tỷ VNĐ) và đơn giá (triệu VNĐ/m²) dựa trên **19 đặc trưng** (vị trí, diện tích, kết cấu, pháp lý và 6 đặc trưng tham chiếu giá thị trường `gia_khuvuc_*`) sử dụng mô hình Pipeline XGBoost Regressor. Hỗ trợ lọc động Phường theo Quận và dự đoán hàng loạt qua file CSV.
+2. **Anomaly Detection (`2_Anomaly_Detection.py`)**: Phát hiện tin đăng bất thường (quá rẻ, quá đắt, bất thường cấu trúc) dựa trên mô hình lai 4 tín hiệu (`Residual-Z`, `P10-P90`, `Historical Min/Max`, `Isolation Forest`) kèm nhãn giải thích XAI minh bạch. Hỗ trợ tải file CSV phát hiện bất thường hàng loạt với thanh trượt tinh chỉnh trọng số $w_1..w_4$ và ngưỡng `Top-k%`.
+3. **Market Overview (`3_Market_Overview.py`)**: Bảng điều khiển tổng quan thị trường BĐS tại 3 quận (KPIs, biểu đồ đơn giá trung vị theo Quận/Phường, tỷ lệ pháp lý và trình duyệt dữ liệu).
 
 ## Cấu trúc thư mục
 
@@ -21,7 +22,8 @@ project1iui/
 │   └── project1_anomaly_model.pkl
 ├── pages/
 │   ├── 1_House_Price_Prediction.py
-│   └── 2_Anomaly_Detection.py
+│   ├── 2_Anomaly_Detection.py
+│   └── 3_Market_Overview.py
 ├── tests/
 │   └── test_page_navigation.py
 ├── app.py

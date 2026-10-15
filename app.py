@@ -49,22 +49,15 @@ st.write(
 
 st.divider()
 
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 
 with col1:
     st.subheader("💰 House Price Prediction")
 
     st.write(
         """
-        Dự đoán giá bán nhà dựa trên:
-
-        - vị trí;
-        - diện tích;
-        - loại hình;
-        - số phòng;
-        - pháp lý;
-        - nội thất;
-        - kích thước và các đặc trưng khác.
+        Dự đoán giá bán nhà (1 căn hoặc upload CSV hàng loạt) dựa trên 19 đặc trưng:
+        vị trí, diện tích, kết cấu, pháp lý và mặt bằng giá khu vực.
         """
     )
 
@@ -79,14 +72,8 @@ with col2:
 
     st.write(
         """
-        Phát hiện các tin đăng có dấu hiệu:
-
-        - quá rẻ;
-        - quá đắt;
-        - hoặc có tổ hợp đặc trưng bất thường.
-
-        Hệ thống kết hợp 4 tín hiệu để tạo
-        Composite Score.
+        Phát hiện các tin đăng có dấu hiệu quá rẻ, quá đắt
+        hoặc có tổ hợp đặc trưng bất thường bằng Composite Score 4 tín hiệu.
         """
     )
 
@@ -94,6 +81,22 @@ with col2:
         "pages/2_Anomaly_Detection.py",
         label="Mở Anomaly Detection →",
         icon="⚠️",
+    )
+
+with col3:
+    st.subheader("📊 Market & Model Overview")
+
+    st.write(
+        """
+        Xem thống kê thị trường 3 quận, bảng đối chiếu 8 mô hình
+        (Traditional ML vs PySpark ML) và Feature Importance.
+        """
+    )
+
+    st.page_link(
+        "pages/3_Market_Overview.py",
+        label="Mở Market & Model Overview →",
+        icon="📊",
     )
 
 st.divider()
