@@ -63,6 +63,13 @@ class PageNavigationTests(unittest.TestCase):
 
         app.switch_page(ANOMALY).run()
         app.radio[0].set_value("✍️ Kiểm tra tin mới").run()
+        quan_box = next(f for f in app.selectbox if f.label == "Quận")
+        phuong_box_before = list(next(f for f in app.selectbox if f.label == "Phường").options)
+        if len(quan_box.options) > 2:
+            quan_box.select(quan_box.options[2]).run()
+            phuong_box_after = list(next(f for f in app.selectbox if f.label == "Phường").options)
+            self.assertNotEqual(phuong_box_before, phuong_box_after)
+
         for field in app.selectbox:
             if field.label in ("Quận", "Loại hình"):
                 field.select(field.options[1])

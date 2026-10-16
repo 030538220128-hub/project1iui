@@ -8,13 +8,47 @@ import streamlit as st
 
 
 # =========================================================
-# CONFIG
+# CONFIG & STYLING
 # =========================================================
 
 st.set_page_config(
-    page_title="Anomaly Detection",
+    page_title="Phát hiện bất thường — Nhà Tốt AI",
     page_icon="⚠️",
     layout="wide",
+)
+
+st.markdown(
+    """
+    <style>
+    .page-banner {
+        background: linear-gradient(135deg, #1B365D 0%, #1E293B 70%, #F37021 100%);
+        padding: 1.4rem 1.8rem;
+        border-radius: 14px;
+        color: #FFFFFF;
+        margin-bottom: 1rem;
+    }
+    .page-banner h1 {
+        font-size: 1.7rem;
+        font-weight: 800;
+        margin: 0 0 0.3rem 0;
+        color: #FFFFFF;
+    }
+    .page-banner p {
+        margin: 0;
+        opacity: 0.92;
+        font-size: 0.95rem;
+    }
+    div[data-testid="stMetric"] {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-left: 4px solid #F37021;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -270,82 +304,90 @@ def analyze_listing(data: dict, custom_weights: dict | None = None, custom_thres
 
 
 def show_result(result: dict):
-    st.divider()
+    with st.container(border=True):
+        st.subheader("🔎 Kết quả thẩm định bất thường")
 
-    if not result["is_anomaly"]:
-        st.success("✅ BÌNH THƯỜNG")
-    elif result["anomaly_type"] == "Quá rẻ":
-        st.warning("⚠️ PHÁT HIỆN: QUÁ RẺ")
-    elif result["anomaly_type"] == "Quá đắt":
-        st.error("🚨 PHÁT HIỆN: QUÁ ĐẮT")
-    else:
-        st.warning("⚠️ BẤT THƯỜNG CẤU TRÚC")
-
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        st.metric("Composite Score", f"{result['composite']:.2f}")
-    with c2:
-        st.metric("Ngưỡng anomaly", f"{result['threshold']:.2f}")
-    with c3:
-        st.metric("Giá model kỳ vọng", f"{result['predicted_price']:.2f} tỷ")
-    with c4:
-        st.metric("Giá / m²", f"{result['gia_m2']:.1f} triệu")
-
-    st.subheader("4 tín hiệu")
-    signal_df = pd.DataFrame(
-        {
-            "Tín hiệu": [
-                "Residual-Z",
-                "Historical Min/Max",
-                "P10–P90",
-                "Isolation Forest",
-            ],
-            "Score": [
-                result["score_resid"],
-                result["score_hist"],
-                result["score_p1090"],
-                result["score_iforest"],
-            ],
-        }
-    )
-    st.bar_chart(signal_df.set_index("Tín hiệu"))
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Residual", f"{result['residual']:+.2f} tỷ")
-        st.caption(f"Z = {result['residual_z']:.2f}")
-    with c2:
-        st.metric("Historical range", f"{result['hist_min']:.1f} – {result['hist_max']:.1f}")
-        st.caption("triệu VNĐ/m²")
-    with c3:
-        if pd.notna(result["p10"]) and pd.notna(result["p90"]):
-            st.metric("P10 – P90", f"{result['p10']:.1f} – {result['p90']:.1f}")
-            st.caption(result["ref_level"])
+        if not result["is_anomaly"]:
+            st.success("✅ BÌNH THƯỜNG — Tin đăng nằm trong biên độ an toàn của thị trường.")
+        elif result["anomaly_type"] == "Quá rẻ":
+            st.warning("⚠️ PHÁT HIỆN: QUÁ RẺ — Cảnh báo tin mồi câu khách, sổ chung/vi bằng hoặc nhập sai đơn vị.")
+        elif result["anomaly_type"] == "Quá đắt":
+            st.error("🚨 PHÁT HIỆN: QUÁ ĐẮT — Cảnh báo giá rao vượt xa mặt bằng khu vực và cấu trúc nhà.")
         else:
-            st.metric("P10 – P90", "N/A")
+            st.warning("⚠️ BẤT THƯỜNG CẤU TRÚC — Tổ hợp diện tích / số tầng / phòng ngủ dị biệt.")
 
-    st.info("**Lý do:** " + result["reason"])
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.metric("Composite Score", f"{result['composite']:.2f}")
+        with c2:
+            st.metric("Ngưỡng anomaly", f"{result['threshold']:.2f}")
+        with c3:
+            st.metric("Giá model kỳ vọng", f"{result['predicted_price']:.2f} tỷ")
+        with c4:
+            st.metric("Giá / m²", f"{result['gia_m2']:.1f} triệu")
+
+        st.markdown("##### 📊 Phân rã 4 tín hiệu bất thường (Thang chuẩn hóa 0 – 1)")
+        signal_df = pd.DataFrame(
+            {
+                "Tín hiệu": [
+                    "1. Residual-Z (40%)",
+                    "2. Historical Min/Max (20%)",
+                    "3. P10–P90 (25%)",
+                    "4. Isolation Forest (15%)",
+                ],
+                "Score": [
+                    result["score_resid"],
+                    result["score_hist"],
+                    result["score_p1090"],
+                    result["score_iforest"],
+                ],
+            }
+        )
+        st.bar_chart(signal_df.set_index("Tín hiệu"), horizontal=True)
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("Sai số Residual", f"{result['residual']:+.2f} tỷ")
+            st.caption(f"Z-score = {result['residual_z']:.2f}")
+        with c2:
+            st.metric("Biên độ lịch sử (Min – Max)", f"{result['hist_min']:.1f} – {result['hist_max']:.1f}")
+            st.caption("triệu VNĐ/m²")
+        with c3:
+            if pd.notna(result["p10"]) and pd.notna(result["p90"]):
+                st.metric("Khoảng P10 – P90", f"{result['p10']:.1f} – {result['p90']:.1f}")
+                st.caption(f"Cấp tham chiếu: {result['ref_level']}")
+            else:
+                st.metric("Khoảng P10 – P90", "N/A")
+
+        st.info("💡 **Giải thích XAI (Lý do gắn cờ):** " + result["reason"])
 
 
 # =========================================================
-# HEADER
+# SIDEBAR & HEADER
 # =========================================================
 
-st.title("⚠️ Phát hiện bất thường giá nhà")
+with st.sidebar:
+    st.markdown("### ⚠️ Module 2: Phát hiện bất thường")
+    st.caption("Kiến trúc Hybrid 4 tín hiệu kết hợp Supervised + Statistical + Unsupervised ML")
+    st.markdown(
+        """
+        **Công thức Composite Score (0–100):**
+        - **40% Residual-Z:** Độ lệch so với giá kỳ vọng OOF của XGBoost.
+        - **25% P10–P90:** Vượt ngoài 80% đơn giá phổ biến của Phường + Loại hình.
+        - **20% Historical Min/Max:** Vượt biên độ lịch sử của khu vực.
+        - **15% Isolation Forest:** Cô lập tổ hợp đặc trưng đa chiều dị biệt.
+        """
+    )
 
-st.write(
+st.markdown(
     """
-    Hệ thống kết hợp **4 tín hiệu** để đánh giá một tin đăng:
-    Residual-Z, Historical Min/Max, P10–P90 và Isolation Forest.
-    """
+    <div class="page-banner">
+        <h1>⚠️ Bài toán 2: Phát hiện tin đăng giá bất thường</h1>
+        <p>Hệ thống chấm điểm đa tín hiệu (Composite Score 0–100) giúp sàng lọc tin đăng Quá rẻ, Quá đắt hoặc Bất thường cấu trúc kèm giải thích XAI.</p>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
-st.caption("Composite Score càng cao → tin càng đáng ưu tiên kiểm tra.")
-st.divider()
-
-
-# =========================================================
-# MODE
-# =========================================================
 
 mode = st.radio(
     "Nguồn dữ liệu",
@@ -363,59 +405,77 @@ mode = st.radio(
 # =========================================================
 
 if mode == "📚 Chọn tin có sẵn":
-    st.subheader("Chọn tin từ dataset")
-    only_anomaly = st.checkbox("Chỉ hiển thị tin đã được gắn cờ anomaly", value=True)
+    with st.container(border=True):
+        st.subheader("📚 Duyệt và kiểm tra các tin đăng trong tập dữ liệu (7,939 tin)")
+        f1, f2, f3 = st.columns([2, 2, 2])
+        with f1:
+            only_anomaly = st.checkbox("Chỉ hiển thị tin đã được gắn cờ anomaly (Top 5%)", value=True)
+        df = reference_rows.copy()
+        if only_anomaly:
+            df = df[df["is_anomaly"].fillna(False).astype(bool)]
 
-    df = reference_rows.copy()
-    if only_anomaly:
-        df = df[df["is_anomaly"].fillna(False).astype(bool)]
+        with f2:
+            districts = sorted(df["quan"].dropna().astype(str).unique())
+            selected_district = st.selectbox("Quận", districts)
+            df = df[df["quan"].astype(str).eq(selected_district)]
 
-    districts = sorted(df["quan"].dropna().astype(str).unique())
-    selected_district = st.selectbox("Quận", districts)
-    df = df[df["quan"].astype(str).eq(selected_district)]
+        with f3:
+            anom_types = ["Tất cả"] + sorted(df["anomaly_type"].dropna().astype(str).unique().tolist())
+            selected_type = st.selectbox("Loại phân loại", anom_types)
+            if selected_type != "Tất cả":
+                df = df[df["anomaly_type"].astype(str).eq(selected_type)]
 
-    indices = df.index.tolist()
+        if df.empty:
+            st.warning("Không có tin đăng nào khớp với bộ lọc hiện tại.")
+            st.stop()
 
-    def label(idx):
-        row = df.loc[idx]
-        title = str(row.get("tieu_de", "Không có tiêu đề"))
-        if len(title) > 90:
-            title = title[:87] + "..."
-        score = row.get("composite_score", np.nan)
-        return f"{title} [Score: {score:.1f}]"
+        indices = df.index.tolist()
 
-    selected_idx = st.selectbox("Tin đăng", indices, format_func=label)
-    row = df.loc[selected_idx]
+        def label(idx):
+            row = df.loc[idx]
+            title = str(row.get("tieu_de", "Không có tiêu đề"))
+            if len(title) > 90:
+                title = title[:87] + "..."
+            score = row.get("composite_score", np.nan)
+            return f"[{row.get('anomaly_type', '')} | Score: {score:.1f}] {title}"
 
-    st.divider()
-    st.subheader(str(row.get("tieu_de", "")))
-    st.caption(str(row.get("dia_chi", "")))
+        selected_idx = st.selectbox("Chọn tin đăng cần xem chi tiết", indices, format_func=label)
+        row = df.loc[selected_idx]
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Giá đăng", f"{row['gia_ty']:.2f} tỷ")
-    c2.metric("Giá dự đoán OOF", f"{row['gia_du_doan_oof']:.2f} tỷ")
-    c3.metric("Composite Score", f"{row['composite_score']:.2f}")
-    c4.metric("Phân loại", row["anomaly_type"])
+    with st.container(border=True):
+        st.subheader(str(row.get("tieu_de", "")))
+        st.caption(f"📍 Địa chỉ: {row.get('dia_chi', '')} | Loại hình: {row.get('loai_hinh', 'N/A')} | Diện tích: {row.get('dien_tich_m2', 0):.1f} m²")
 
-    score_df = pd.DataFrame(
-        {
-            "Tín hiệu": ["Residual-Z", "Historical", "P10–P90", "Isolation Forest"],
-            "Score": [
-                row["score_resid"],
-                row["score_hist"],
-                row["score_p1090"],
-                row["score_iforest"],
-            ],
-        }
-    )
-    st.bar_chart(score_df.set_index("Tín hiệu"))
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Giá đăng", f"{row['gia_ty']:.2f} tỷ")
+        c2.metric("Giá dự đoán OOF", f"{row['gia_du_doan_oof']:.2f} tỷ")
+        c3.metric("Composite Score", f"{row['composite_score']:.2f}")
+        c4.metric("Phân loại", row["anomaly_type"])
 
-    if bool(row["is_anomaly"]):
-        st.warning(f"⚠️ {row['anomaly_type']}")
-    else:
-        st.success("✅ Bình thường")
+        score_df = pd.DataFrame(
+            {
+                "Tín hiệu": [
+                    "1. Residual-Z (40%)",
+                    "2. Historical Min/Max (20%)",
+                    "3. P10–P90 (25%)",
+                    "4. Isolation Forest (15%)",
+                ],
+                "Score": [
+                    row["score_resid"],
+                    row["score_hist"],
+                    row["score_p1090"],
+                    row["score_iforest"],
+                ],
+            }
+        )
+        st.bar_chart(score_df.set_index("Tín hiệu"), horizontal=True)
 
-    st.info("**Lý do:** " + str(row["ly_do_bat_thuong"]))
+        if bool(row["is_anomaly"]):
+            st.warning(f"⚠️ Cảnh báo kiểm duyệt: **{row['anomaly_type']}**")
+        else:
+            st.success("✅ Tin đăng Bình thường")
+
+        st.info("💡 **Giải thích XAI:** " + str(row["ly_do_bat_thuong"]))
 
 
 # =========================================================
@@ -423,15 +483,30 @@ if mode == "📚 Chọn tin có sẵn":
 # =========================================================
 
 elif mode == "✍️ Kiểm tra tin mới":
-    st.subheader("Nhập một tin đăng mới")
+    with st.container(border=True):
+        st.subheader("📍 Bước 1: Vị trí và loại hình bất động sản")
+        st.caption("Chọn Quận để hệ thống tự động lọc danh sách Phường và tải ngưỡng tham chiếu P10–P90 tương ứng.")
 
-    with st.form("new_listing_form"):
-        c1, c2, c3 = st.columns(3)
+        loc_c1, loc_c2, loc_c3 = st.columns(3)
+        with loc_c1:
+            quan_opts = options("quan")
+            default_quan_idx = 1 if len(quan_opts) > 1 else 0
+            quan = st.selectbox("Quận", quan_opts, index=default_quan_idx)
+        with loc_c2:
+            phuong = st.selectbox("Phường", phuong_options(quan))
+        with loc_c3:
+            loai_opts = options("loai_hinh")
+            default_loai_idx = 1 if len(loai_opts) > 1 else 0
+            loai_hinh = st.selectbox("Loại hình", loai_opts, index=default_loai_idx)
+
+    with st.form("new_listing_form", border=True):
+        st.subheader("📐 Bước 2: Giá rao bán, diện tích và kết cấu")
+        c1, c2 = st.columns(2)
 
         with c1:
-            gia_ty = st.number_input("Giá bán (tỷ VNĐ)", min_value=0.1, value=7.0, step=0.1)
+            gia_ty = st.number_input("Giá bán rao trên tin (tỷ VNĐ)", min_value=0.1, value=7.0, step=0.1)
             dien_tich = st.number_input(
-                "Diện tích (m²)",
+                "Diện tích đất / công nhận (m²)",
                 min_value=1.0,
                 value=max(1.0, num_default("dien_tich_m2", 52.0)),
             )
@@ -442,11 +517,6 @@ elif mode == "✍️ Kiểm tra tin mới":
             )
 
         with c2:
-            quan = st.selectbox("Quận", options("quan"))
-            phuong = st.selectbox("Phường", phuong_options(quan))
-            loai_hinh = st.selectbox("Loại hình", options("loai_hinh"))
-
-        with c3:
             phong_ngu = st.number_input(
                 "Phòng ngủ",
                 min_value=0.0,
@@ -463,7 +533,7 @@ elif mode == "✍️ Kiểm tra tin mới":
                 value=max(0.0, num_default("tong_so_tang", 3.0)),
             )
 
-        with st.expander("Thông tin bổ sung"):
+        with st.expander("🏠 Thông tin bổ sung (Kích thước ngang/dài, Pháp lý, Nội thất, Đặc điểm)"):
             c1, c2 = st.columns(2)
             with c1:
                 ngang = st.number_input(
@@ -520,121 +590,305 @@ elif mode == "✍️ Kiểm tra tin mới":
 # =========================================================
 
 else:
-    st.subheader("📤 Upload CSV có giá → Phát hiện bất thường hàng loạt")
-    st.write(
-        """
-        Upload file CSV chứa danh sách nhà **kèm cột giá bán** (`gia_ty` hoặc `gia_ban`)
-        để hệ thống chấm điểm 4 tín hiệu và lọc danh sách bất thường.
-        """
-    )
+    with st.container(border=True):
+        st.subheader("📤 Upload CSV có giá → Phát hiện bất thường hàng loạt")
+        st.write(
+            """
+            Tải lên file CSV chứa danh sách nhà **kèm cột giá bán thực tế** (`gia_ty`, `gia_ban`, `gia_m2` hoặc `don_gia`).
+            Hỗ trợ cả phương pháp **Composite Score (4 tín hiệu)** lẫn kiểm tra theo **từng phương pháp thành phần**
+            như gợi ý trong tài liệu hướng dẫn triển khai GUI.
+            """
+        )
 
-    with st.expander("⚙️ Tùy chỉnh trọng số Composite Score & Ngưỡng Top-k%", expanded=False):
-        wc1, wc2, wc3, wc4, wc5 = st.columns(5)
-        w_resid = wc1.slider("w1 (Residual-Z)", 0.0, 1.0, float(artifact["weights"]["resid"]), 0.05)
-        w_p1090 = wc2.slider("w2 (P10–P90)", 0.0, 1.0, float(artifact["weights"]["p1090"]), 0.05)
-        w_hist = wc3.slider("w3 (Historical)", 0.0, 1.0, float(artifact["weights"]["hist"]), 0.05)
-        w_if = wc4.slider("w4 (Isolation Forest)", 0.0, 1.0, float(artifact["weights"]["iforest"]), 0.05)
-        top_k_pct = wc5.slider("Top-k% gắn cờ", 1, 20, int(artifact["top_k"] * 100), 1)
+        sample_anom_df = pd.DataFrame(
+            [
+                {
+                    "tieu_de": "[Mẫu 1 - Bình thường] Nhà hẻm xe hơi P7 Bình Thạnh",
+                    "quan": "Binh Thanh",
+                    "phuong": "Phường 7",
+                    "loai_hinh": "Nhà ngõ, hẻm",
+                    "gia_ty": 6.8,
+                    "dien_tich_m2": 50.0,
+                    "dien_tich_su_dung_m2": 140.0,
+                    "so_phong_ngu": 3,
+                    "so_phong_ve_sinh": 3,
+                    "tong_so_tang": 3,
+                    "chieu_ngang_m": 4.0,
+                    "chieu_dai_m": 12.5,
+                    "giay_to_phap_ly": "Đã có sổ",
+                },
+                {
+                    "tieu_de": "[Mẫu 2 - Quá rẻ / Nghi vấn tin ảo] Nhà 100m² Phú Nhuận chỉ 0.85 tỷ",
+                    "quan": "Phu Nhuan",
+                    "phuong": "Phường 14",
+                    "loai_hinh": "Nhà ngõ, hẻm",
+                    "gia_ty": 0.85,
+                    "dien_tich_m2": 100.0,
+                    "dien_tich_su_dung_m2": 200.0,
+                    "so_phong_ngu": 4,
+                    "so_phong_ve_sinh": 3,
+                    "tong_so_tang": 3,
+                    "chieu_ngang_m": 5.0,
+                    "chieu_dai_m": 20.0,
+                    "giay_to_phap_ly": "Sổ chung / vi bằng",
+                },
+                {
+                    "tieu_de": "[Mẫu 3 - Quá đắt / Thổi giá] Nhà hẻm 30m² Gò Vấp rao 28 tỷ",
+                    "quan": "Go Vap",
+                    "phuong": "Phường 10",
+                    "loai_hinh": "Nhà ngõ, hẻm",
+                    "gia_ty": 28.0,
+                    "dien_tich_m2": 30.0,
+                    "dien_tich_su_dung_m2": 60.0,
+                    "so_phong_ngu": 2,
+                    "so_phong_ve_sinh": 2,
+                    "tong_so_tang": 2,
+                    "chieu_ngang_m": 3.0,
+                    "chieu_dai_m": 10.0,
+                    "giay_to_phap_ly": "Đã có sổ",
+                },
+            ]
+        )
 
-    csv_anom = st.file_uploader(
-        "Chọn file CSV có cột giá để kiểm tra bất thường",
-        type=["csv"],
-        key="batch_anom_csv",
-    )
+        st.download_button(
+            "📄 Tải file CSV mẫu (gồm tin Bình thường, Quá rẻ, Quá đắt) để thử nghiệm ngay",
+            data=sample_anom_df.to_csv(index=False).encode("utf-8-sig"),
+            file_name="mau_kiem_tra_bat_thuong.csv",
+            mime="text/csv",
+        )
+
+        with st.expander("⚙️ Cấu hình phương pháp phát hiện, trọng số w1..w4 & ngưỡng lọc", expanded=True):
+            method_choice = st.selectbox(
+                "Phương pháp phát hiện bất thường",
+                [
+                    "Composite Score (Kết hợp 4 tín hiệu - Khuyên dùng)",
+                    "Residual-z (Sai số dự đoán XGBoost)",
+                    "Vi phạm Min/Max (Biên độ đơn giá)",
+                    "Khoảng P10 - P90 (Bách phân vị đơn giá)",
+                    "Isolation Forest (Bất thường đa chiều)",
+                ],
+                key="batch_anom_method",
+            )
+
+            wc1, wc2, wc3, wc4, wc5 = st.columns(5)
+            w_resid = wc1.slider("w1 (Residual-Z)", 0.0, 1.0, float(artifact["weights"]["resid"]), 0.05)
+            w_p1090 = wc2.slider("w2 (P10–P90)", 0.0, 1.0, float(artifact["weights"]["p1090"]), 0.05)
+            w_hist = wc3.slider("w3 (Historical)", 0.0, 1.0, float(artifact["weights"]["hist"]), 0.05)
+            w_if = wc4.slider("w4 (Isolation Forest)", 0.0, 1.0, float(artifact["weights"]["iforest"]), 0.05)
+            top_k_pct = wc5.slider("Top-k% gắn cờ", 1, 50, int(artifact["top_k"] * 100), 1)
+
+        csv_anom = st.file_uploader(
+            "Chọn file CSV có cột giá để kiểm tra bất thường",
+            type=["csv"],
+            key="batch_anom_csv",
+        )
 
     if csv_anom is not None:
         try:
             df_up = pd.read_csv(csv_anom)
-            st.write(f"Đã tải lên **{len(df_up):,}** dòng | **{len(df_up.columns)}** cột.")
-            st.dataframe(df_up.head(10), width="stretch")
+            with st.container(border=True):
+                st.write(f"Đã tải lên **{len(df_up):,}** dòng | **{len(df_up.columns)}** cột.")
+                st.dataframe(df_up.head(10), width="stretch")
 
-            if st.button("⚠️ Chạy phát hiện bất thường cho file CSV", type="primary", width="stretch"):
-                w_sum = max(w_resid + w_p1090 + w_hist + w_if, 1e-6)
-                norm_w = {
-                    "resid": w_resid / w_sum,
-                    "p1090": w_p1090 / w_sum,
-                    "hist": w_hist / w_sum,
-                    "iforest": w_if / w_sum,
-                }
-
-                # Nếu file đã có sẵn các cột score (như house_prices_clean.csv), tính cực nhanh
-                if {"score_resid", "score_hist", "score_p1090", "score_iforest"}.issubset(df_up.columns):
-                    out_df = df_up.copy()
-                    out_df["composite_score"] = 100.0 * (
-                        norm_w["resid"] * out_df["score_resid"]
-                        + norm_w["hist"] * out_df["score_hist"]
-                        + norm_w["p1090"] * out_df["score_p1090"]
-                        + norm_w["iforest"] * out_df["score_iforest"]
-                    )
-                    cutoff_score = float(np.quantile(out_df["composite_score"].dropna(), 1.0 - top_k_pct / 100.0))
-                    out_df["is_anomaly"] = out_df["composite_score"] >= cutoff_score
-                else:
-                    # Phân tích từng dòng (tối đa 500 dòng đầu để phản hồi tức thì)
-                    work_df = df_up.head(500).copy()
-                    records = []
-                    for _, r in work_df.iterrows():
-                        gia_val = r.get("gia_ty", np.nan)
-                        if pd.isna(gia_val) and "gia_ban" in r:
-                            m = re.search(r"[-+]?\d*\.?\d+", str(r["gia_ban"]).replace(",", "."))
-                            gia_val = float(m.group(0)) if m else 5.0
-                        dt_val = r.get("dien_tich_m2", r.get("dien_tich", 50.0))
-                        m_dt = re.search(r"[-+]?\d*\.?\d+", str(dt_val).replace(",", "."))
-                        dt_val = float(m_dt.group(0)) if m_dt else 50.0
-
-                        row_input = {
-                            "gia_ty": float(gia_val if pd.notna(gia_val) else 5.0),
-                            "dien_tich_m2": max(1.0, float(dt_val)),
-                            "dien_tich_su_dung_m2": float(r.get("dien_tich_su_dung_m2", dt_val)),
-                            "so_phong_ngu": float(r.get("so_phong_ngu", 3.0)),
-                            "so_phong_ve_sinh": float(r.get("so_phong_ve_sinh", 2.0)),
-                            "tong_so_tang": float(r.get("tong_so_tang", 2.0)),
-                            "chieu_ngang_m": float(r.get("chieu_ngang_m", 4.0)),
-                            "chieu_dai_m": float(r.get("chieu_dai_m", 12.0)),
-                            "quan": r.get("quan", "Go Vap"),
-                            "phuong": r.get("phuong", np.nan),
-                            "loai_hinh": r.get("loai_hinh", "Nhà ngõ, hẻm"),
-                            "giay_to_phap_ly": r.get("giay_to_phap_ly", np.nan),
-                            "tinh_trang_noi_that": r.get("tinh_trang_noi_that", np.nan),
-                            "dac_diem": r.get("dac_diem", np.nan),
+                if st.button("⚠️ Chạy phát hiện bất thường cho file CSV", type="primary", width="stretch"):
+                    if method_choice.startswith("Residual-z"):
+                        norm_w = {"resid": 1.0, "p1090": 0.0, "hist": 0.0, "iforest": 0.0}
+                    elif method_choice.startswith("Vi phạm Min/Max"):
+                        norm_w = {"resid": 0.0, "p1090": 0.0, "hist": 1.0, "iforest": 0.0}
+                    elif method_choice.startswith("Khoảng P10 - P90"):
+                        norm_w = {"resid": 0.0, "p1090": 1.0, "hist": 0.0, "iforest": 0.0}
+                    elif method_choice.startswith("Isolation Forest"):
+                        norm_w = {"resid": 0.0, "p1090": 0.0, "hist": 0.0, "iforest": 1.0}
+                    else:
+                        w_sum = max(w_resid + w_p1090 + w_hist + w_if, 1e-6)
+                        norm_w = {
+                            "resid": w_resid / w_sum,
+                            "p1090": w_p1090 / w_sum,
+                            "hist": w_hist / w_sum,
+                            "iforest": w_if / w_sum,
                         }
-                        res = analyze_listing(row_input, custom_weights=norm_w)
-                        records.append(res)
 
-                    res_df = pd.DataFrame(records)
-                    out_df = work_df.copy()
-                    out_df["gia_du_doan_ty"] = np.round(res_df["predicted_price"].values, 2)
-                    out_df["composite_score"] = np.round(res_df["composite"].values, 2)
-                    cutoff_score = float(np.quantile(out_df["composite_score"], 1.0 - top_k_pct / 100.0))
-                    out_df["is_anomaly"] = out_df["composite_score"] >= cutoff_score
-                    out_df["anomaly_type"] = np.where(
-                        out_df["is_anomaly"], res_df["anomaly_type"].values, "Bình thường"
+                    if {"score_resid", "score_hist", "score_p1090", "score_iforest"}.issubset(df_up.columns):
+                        out_df = df_up.copy()
+                        out_df["composite_score"] = 100.0 * (
+                            norm_w["resid"] * out_df["score_resid"]
+                            + norm_w["hist"] * out_df["score_hist"]
+                            + norm_w["p1090"] * out_df["score_p1090"]
+                            + norm_w["iforest"] * out_df["score_iforest"]
+                        )
+                        cutoff_score = float(np.quantile(out_df["composite_score"].dropna(), 1.0 - top_k_pct / 100.0))
+                        out_df["is_anomaly"] = out_df["composite_score"] >= cutoff_score
+                    else:
+                        def _parse_num(val, fallback: float) -> float:
+                            if pd.isna(val):
+                                return fallback
+                            if isinstance(val, (int, float, np.number)):
+                                return float(val)
+                            m = re.search(r"[-+]?\d*\.?\d+", str(val).replace(",", "."))
+                            return float(m.group(0)) if m else fallback
+
+                        def _parse_price_ty(val, fallback: float = 5.0) -> float:
+                            if pd.isna(val):
+                                return fallback
+                            if isinstance(val, (int, float, np.number)):
+                                return float(val)
+                            s = str(val).lower().replace(",", ".")
+                            num = _parse_num(s, fallback)
+                            if "triệu" in s or "tr" in s:
+                                return num / 1000.0
+                            return num
+
+                        work_df = df_up.copy()
+                        if "dia_chi" in work_df.columns:
+                            addr = work_df["dia_chi"].fillna("").astype(str)
+                            if "quan" not in work_df.columns or work_df["quan"].isna().all():
+                                work_df["quan"] = np.select(
+                                    [
+                                        addr.str.contains("Bình Thạnh|Binh Thanh", case=False, regex=True),
+                                        addr.str.contains("Gò Vấp|Go Vap", case=False, regex=True),
+                                        addr.str.contains("Phú Nhuận|Phu Nhuan", case=False, regex=True),
+                                    ],
+                                    ["Binh Thanh", "Go Vap", "Phu Nhuan"],
+                                    default="Go Vap",
+                                )
+                            if "phuong" not in work_df.columns or work_df["phuong"].isna().all():
+                                work_df["phuong"] = addr.str.extract(r"(Phường\s+[^,()]+)", expand=False).str.strip()
+
+                        gia_series = (
+                            work_df["gia_ty"].map(lambda v: _parse_num(v, 5.0))
+                            if "gia_ty" in work_df.columns
+                            else work_df.get("gia_ban", pd.Series(5.0, index=work_df.index)).map(_parse_price_ty)
+                        )
+                        dt_col = "dien_tich_m2" if "dien_tich_m2" in work_df.columns else "dien_tich"
+                        dt_series = (
+                            work_df[dt_col].map(lambda v: max(1.0, _parse_num(v, 52.0)))
+                            if dt_col in work_df.columns
+                            else pd.Series(52.0, index=work_df.index)
+                        )
+
+                        batch_df = pd.DataFrame(index=work_df.index)
+                        batch_df["gia_ty"] = gia_series.astype(float)
+                        batch_df["dien_tich_m2"] = dt_series.astype(float)
+                        batch_df["gia_m2_calc"] = batch_df["gia_ty"] * 1000.0 / np.maximum(batch_df["dien_tich_m2"], 0.001)
+
+                        num_map = {
+                            "dien_tich_su_dung_m2": ("dien_tich_su_dung_m2", "dien_tich_su_dung", 120.0),
+                            "so_phong_ngu": ("so_phong_ngu", "so_phong_ngu_num", 3.0),
+                            "so_phong_ve_sinh": ("so_phong_ve_sinh", "so_phong_ve_sinh_num", 3.0),
+                            "tong_so_tang": ("tong_so_tang", "tong_so_tang_num", 3.0),
+                            "chieu_ngang_m": ("chieu_ngang_m", "chieu_ngang", 4.0),
+                            "chieu_dai_m": ("chieu_dai_m", "chieu_dai", 12.0),
+                        }
+                        for target_c, (c1_name, c2_name, fb) in num_map.items():
+                            src_c = c1_name if c1_name in work_df.columns else (c2_name if c2_name in work_df.columns else None)
+                            batch_df[target_c] = (
+                                work_df[src_c].map(lambda v, f=fb: _parse_num(v, f)) if src_c else fb
+                            )
+
+                        for cat_c, fb_cat in [
+                            ("quan", "Go Vap"),
+                            ("phuong", np.nan),
+                            ("loai_hinh", "Nhà ngõ, hẻm"),
+                            ("giay_to_phap_ly", np.nan),
+                            ("tinh_trang_noi_that", np.nan),
+                            ("dac_diem", np.nan),
+                        ]:
+                            batch_df[cat_c] = work_df[cat_c] if cat_c in work_df.columns else fb_cat
+
+                        for feat in artifact["market_features"]:
+                            batch_df[feat] = work_df[feat] if feat in work_df.columns else np.nan
+
+                        for (q_val, l_val), idx_grp in batch_df.groupby(["quan", "loai_hinh"], dropna=False).groups.items():
+                            mkt = get_market_defaults(q_val, l_val)
+                            for feat, val in mkt.items():
+                                batch_df.loc[idx_grp, feat] = batch_df.loc[idx_grp, feat].fillna(val)
+
+                        reg_df = batch_df[artifact["reg_features"]]
+                        pred_prices = np.maximum(np.expm1(artifact["price_model"].predict(reg_df)), 0.0)
+                        residuals = batch_df["gia_ty"].to_numpy() - pred_prices
+                        resid_std = artifact["residual_std"]
+                        z_vals = (residuals - artifact["residual_mean"]) / resid_std if resid_std > 0 else np.zeros_like(residuals)
+                        score_resid = np.clip(np.abs(z_vals) / artifact["residual_score_max_z"], 0.0, 1.0)
+
+                        gia_m2_arr = batch_df["gia_m2_calc"].to_numpy()
+                        hist_min_arr = batch_df["gia_khuvuc_min"].to_numpy()
+                        hist_max_arr = batch_df["gia_khuvuc_max"].to_numpy()
+                        hist_dir = np.where(gia_m2_arr < hist_min_arr, -1.0, np.where(gia_m2_arr > hist_max_arr, 1.0, 0.0))
+                        hist_dist = np.where(gia_m2_arr < hist_min_arr, hist_min_arr - gia_m2_arr, np.where(gia_m2_arr > hist_max_arr, gia_m2_arr - hist_max_arr, 0.0))
+                        hist_width = np.maximum(hist_max_arr - hist_min_arr, artifact["historical_width_floor"])
+                        score_hist = np.clip(hist_dist / hist_width, 0.0, 1.0)
+
+                        p1090_cache = {}
+                        p10_arr = np.empty(len(batch_df), dtype=float)
+                        p90_arr = np.empty(len(batch_df), dtype=float)
+                        for i, (q_v, p_v, l_v) in enumerate(zip(batch_df["quan"], batch_df["phuong"], batch_df["loai_hinh"])):
+                            key = (str(q_v), str(p_v), str(l_v))
+                            if key not in p1090_cache:
+                                p1090_cache[key] = get_p1090_reference(q_v, p_v, l_v)[:2]
+                            p10_arr[i], p90_arr[i] = p1090_cache[key]
+
+                        valid_p = ~np.isnan(p10_arr) & ~np.isnan(p90_arr)
+                        p_dir = np.where(valid_p & (gia_m2_arr < p10_arr), -1.0, np.where(valid_p & (gia_m2_arr > p90_arr), 1.0, 0.0))
+                        p_dist = np.where(valid_p & (gia_m2_arr < p10_arr), p10_arr - gia_m2_arr, np.where(valid_p & (gia_m2_arr > p90_arr), gia_m2_arr - p90_arr, 0.0))
+                        p_width = np.maximum(np.where(valid_p, p90_arr - p10_arr, 0.0), artifact["p1090_width_floor"])
+                        score_p1090 = np.where(valid_p, np.clip(p_dist / p_width, 0.0, 1.0), 0.0)
+
+                        if_cols = artifact["if_numeric_features"] + artifact["if_categorical_features"]
+                        X_if = artifact["if_preprocessor"].transform(batch_df[if_cols])
+                        raw_if = -artifact["isolation_forest"].decision_function(X_if)
+                        ref_scores = np.asarray(artifact["if_reference_scores"], dtype=float)
+                        score_iforest = (
+                            np.searchsorted(ref_scores, raw_if, side="right") / len(ref_scores)
+                            if len(ref_scores) > 0
+                            else np.zeros_like(raw_if)
+                        )
+
+                        comp_scores = 100.0 * (
+                            norm_w["resid"] * score_resid
+                            + norm_w["hist"] * score_hist
+                            + norm_w["p1090"] * score_p1090
+                            + norm_w["iforest"] * score_iforest
+                        )
+                        cutoff_score = float(np.quantile(comp_scores, 1.0 - top_k_pct / 100.0))
+                        is_anom = comp_scores >= cutoff_score
+
+                        dw = artifact["direction_weights"]
+                        signed = (
+                            dw["resid"] * np.sign(residuals) * score_resid
+                            + dw["hist"] * hist_dir * score_hist
+                            + dw["p1090"] * p_dir * score_p1090
+                        )
+                        anom_types = np.where(
+                            ~is_anom,
+                            "Bình thường",
+                            np.where(
+                                signed > dw["cutoff"],
+                                "Quá đắt",
+                                np.where(signed < -dw["cutoff"], "Quá rẻ", "Bất thường cấu trúc / khác"),
+                            ),
+                        )
+
+                        out_df = work_df.copy()
+                        out_df["gia_du_doan_ty"] = np.round(pred_prices, 2)
+                        out_df["composite_score"] = np.round(comp_scores, 2)
+                        out_df["is_anomaly"] = is_anom
+                        out_df["anomaly_type"] = anom_types
+
+                    flagged = out_df[out_df["is_anomaly"]].sort_values("composite_score", ascending=False)
+                    k1, k2, k3 = st.columns(3)
+                    k1.metric("Tổng số tin kiểm tra", f"{len(out_df):,}")
+                    k2.metric("Số tin bất thường", f"{len(flagged):,}")
+                    k3.metric("Ngưỡng Composite Score", f"{cutoff_score:.2f}")
+
+                    st.write("### 🚨 Danh sách tin bị gắn cờ bất thường")
+                    st.dataframe(flagged.head(100), width="stretch")
+
+                    st.download_button(
+                        "📥 Tải danh sách kết quả phát hiện bất thường (.csv)",
+                        data=out_df.to_csv(index=False).encode("utf-8-sig"),
+                        file_name="ket_qua_phat_hien_bat_thuong.csv",
+                        mime="text/csv",
+                        width="stretch",
                     )
-                    out_df["ly_do_bat_thuong"] = res_df["reason"].values
-
-                flagged = out_df[out_df["is_anomaly"]].sort_values("composite_score", ascending=False)
-                k1, k2, k3 = st.columns(3)
-                k1.metric("Tổng số tin kiểm tra", f"{len(out_df):,}")
-                k2.metric("Số tin bất thường", f"{len(flagged):,}")
-                k3.metric("Ngưỡng Composite Score", f"{cutoff_score:.2f}")
-
-                st.write("### Danh sách tin bị gắn cờ bất thường")
-                st.dataframe(flagged.head(100), width="stretch")
-
-                st.download_button(
-                    "📥 Tải danh sách kết quả phát hiện bất thường (.csv)",
-                    data=out_df.to_csv(index=False).encode("utf-8-sig"),
-                    file_name="ket_qua_phat_hien_bat_thuong.csv",
-                    mime="text/csv",
-                    width="stretch",
-                )
         except Exception as e:
             st.error(f"Không thể xử lý file CSV: {e}")
-
-
-st.divider()
-st.caption(
-    """
-    Đây là hệ thống ưu tiên các tin cần kiểm tra, không phải kết luận chắc chắn một tin đăng là sai.
-    Dataset không có nhãn anomaly ground-truth.
-    """
-)
