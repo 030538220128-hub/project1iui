@@ -201,18 +201,10 @@ with col3:
 if BANNER_PATH.exists():
     st.write("")
     with st.container(border=True):
-        b_left, b_right = st.columns([3, 2])
-        with b_left:
-            st.image(str(BANNER_PATH), caption="Mô hình nghiệp vụ Dự đoán giá & Phát hiện bất thường trên Nhà Tốt (nhatot.com)", width="stretch")
-        with b_right:
-            st.markdown("#### 🎯 Quy trình 6 bước Data Science (CRISP-DM)")
-            st.markdown(
-                """
-                1. **Business Understanding:** Định giá minh bạch cho người mua/bán & hỗ trợ kiểm duyệt tin rác trên Nhà Tốt.
-                2. **Data Understanding:** Khám phá 8,273 tin đăng thô tại Bình Thạnh, Gò Vấp, Phú Nhuận; chống rò rỉ dữ liệu (*Target Leakage*).
-                3. **Data Preparation:** Làm sạch bảo thủ còn **7,939 tin sạch**, kiểm toán sửa nhãn giá sai đơn vị & trích xuất **19 đặc trưng**.
-                4. **Modeling:** Huấn luyện **8 mô hình Hồi quy** (4 Scikit-Learn + 4 PySpark ML) với `log1p` & thiết kế **4 tín hiệu Anomaly**.
-                5. **Evaluation:** LightGBM đạt Test $R^2 = 0.824$, XGBoost đạt CV RMSE tốt nhất ($7.135$ tỷ); tỷ lệ đồng thuận Anomaly đạt **85.06%**.
-                6. **Deployment:** Đóng gói Pipeline `.pkl` và triển khai ứng dụng Web Streamlit tương tác thời gian thực.
-                """
+        _, img_col, _ = st.columns([1, 6, 1])
+        with img_col:
+            st.image(
+                str(BANNER_PATH),
+                caption="Mô hình nghiệp vụ Dự đoán giá & Phát hiện bất thường trên Nhà Tốt (nhatot.com)",
+                width="stretch",
             )
