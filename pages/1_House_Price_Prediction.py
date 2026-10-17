@@ -216,19 +216,79 @@ def prepare_batch_dataframe(raw_df: pd.DataFrame) -> pd.DataFrame:
 # =========================================================
 
 with st.sidebar:
-    st.markdown("### 💰 Module 1: Định giá BĐS")
+    st.markdown("### 🎛️ Bảng điều khiển định giá BĐS")
     st.caption(
-        f"Model: **{artifact.get('model_name', 'XGBoost')}** "
+        f"Mô hình: **{artifact.get('model_name', 'XGBoost')}** "
         f"(`{artifact.get('target_mode', 'log1p')}`)"
     )
-    st.markdown(
-        """
-        **Bộ 19 đặc trưng đầu vào:**
-        - **7 biến vật lý:** Diện tích đất, diện tích sử dụng, số tầng, phòng ngủ, WC, ngang, dài.
-        - **6 biến phân loại:** Quận, Phường, Loại hình, Pháp lý, Nội thất, Đặc điểm.
-        - **6 biến thị trường:** Tự động tra cứu mặt bằng giá theo `(Quận, Loại hình)`.
-        """
-    )
+    st.divider()
+
+    st.markdown("#### 📍 1. Vị trí & Loại hình")
+    quan_opts = options("quan")
+    default_quan_idx = 1 if len(quan_opts) > 1 else 0
+    quan = st.selectbox("Quận", quan_opts, index=default_quan_idx)
+    phuong_opts = phuong_options(quan)
+    phuong = st.selectbox("Phường", phuong_opts)
+    loai_opts = options("loai_hinh")
+    default_loai_idx = 1 if len(loai_opts) > 1 else 0
+    loai_hinh = st.selectbox("Loại hình", loai_opts, index=default_loai_idx)
+
+    st.divider()
+    with st.form("price_prediction_form", border=True):
+        st.markdown("#### 📐 2. Diện tích & Kết cấu")
+        dien_tich = st.number_input(
+            "Diện tích đất / công nhận (m²)",
+            min_value=1.0,
+            value=max(1.0, default_num("dien_tich_m2", 52.0)),
+            step=1.0,
+        )
+        dien_tich_su_dung = st.number_input(
+            "Diện tích sử dụng (m²)",
+            min_value=0.0,
+            value=max(0.0, default_num("dien_tich_su_dung_m2", 120.0)),
+            step=1.0,
+        )
+        so_tang = st.number_input(
+            "Tổng số tầng",
+            min_value=1.0,
+            value=max(1.0, default_num("tong_so_tang", 3.0)),
+            step=1.0,
+        )
+        phong_ngu = st.number_input(
+            "Số phòng ngủ",
+            min_value=0.0,
+            value=max(0.0, default_num("so_phong_ngu", 3.0)),
+            step=1.0,
+        )
+        phong_wc = st.number_input(
+            "Số phòng vệ sinh",
+            min_value=0.0,
+            value=max(0.0, default_num("so_phong_ve_sinh", 3.0)),
+            step=1.0,
+        )
+        chieu_ngang = st.number_input(
+            "Chiều ngang mặt tiền (m)",
+            min_value=0.0,
+            value=max(0.0, default_num("chieu_ngang_m", 4.0)),
+            step=0.1,
+        )
+        chieu_dai = st.number_input(
+            "Chiều dài (m)",
+            min_value=0.0,
+            value=max(0.0, default_num("chieu_dai_m", 13.0)),
+            step=0.1,
+        )
+
+        st.markdown("#### 📜 3. Pháp lý & Nội thất")
+        giay_to = st.selectbox("Giấy tờ pháp lý", options("giay_to_phap_ly"))
+        noi_that = st.selectbox("Tình trạng nội thất", options("tinh_trang_noi_that"))
+        dac_diem = st.selectbox("Đặc điểm vị trí / kết cấu (Hẻm xe hơi, Nở hậu, Mặt tiền...)", options("dac_diem"))
+
+        submitted = st.form_submit_button(
+            "💰 Dự đoán giá",
+            type="primary",
+            width="stretch",
+        )
 
 st.markdown(
     """
@@ -249,100 +309,39 @@ mode = st.radio(
     horizontal=True,
 )
 
-
 # =========================================================
 # MODE 1: SINGLE HOUSE PREDICTION
 # =========================================================
 
 if mode == "✍️ Nhập thông tin 1 căn nhà":
-    with st.container(border=True):
-        st.subheader("📍 Bước 1: Chọn vị trí & loại hình bất động sản")
-        st.caption("Danh sách Phường và mặt bằng giá tham chiếu sẽ tự động cập nhật ngay khi bạn chọn Quận.")
+    preview_mkt = get_market_defaults(nullable_category(quan), nullable_category(loai_hinh))
+    st.info(
+        f"📊 **Mặt bằng giá tham chiếu khu vực ({quan} — {loai_hinh}):** "
+        f"Hiện tại **{preview_mkt['gia_khuvuc_hientai']:.1f} tr/m²** | "
+        f"Trung bình **{preview_mkt['gia_khuvuc_mean']:.1f} tr/m²** | "
+        f"Biên độ lịch sử **{preview_mkt['gia_khuvuc_min']:.1f} – {preview_mkt['gia_khuvuc_max']:.1f} tr/m²** "
+        f"(Xu hướng: `{preview_mkt['gia_khuvuc_trend_pct']:+.1f}%`)"
+    )
 
-        loc_c1, loc_c2, loc_c3 = st.columns(3)
-        with loc_c1:
-            quan_opts = options("quan")
-            default_quan_idx = 1 if len(quan_opts) > 1 else 0
-            quan = st.selectbox("Quận", quan_opts, index=default_quan_idx)
-        with loc_c2:
-            phuong_opts = phuong_options(quan)
-            phuong = st.selectbox("Phường", phuong_opts)
-        with loc_c3:
-            loai_opts = options("loai_hinh")
-            default_loai_idx = 1 if len(loai_opts) > 1 else 0
-            loai_hinh = st.selectbox("Loại hình", loai_opts, index=default_loai_idx)
-
-        preview_mkt = get_market_defaults(nullable_category(quan), nullable_category(loai_hinh))
-        st.info(
-            f"📊 **Mặt bằng giá tham chiếu ({quan} — {loai_hinh}):** "
-            f"Hiện tại **{preview_mkt['gia_khuvuc_hientai']:.1f} tr/m²** | "
-            f"Trung bình **{preview_mkt['gia_khuvuc_mean']:.1f} tr/m²** | "
-            f"Biên độ lịch sử **{preview_mkt['gia_khuvuc_min']:.1f} – {preview_mkt['gia_khuvuc_max']:.1f} tr/m²** "
-            f"(Xu hướng: `{preview_mkt['gia_khuvuc_trend_pct']:+.1f}%`)"
-        )
-
-    with st.form("price_prediction_form", border=True):
-        st.subheader("📐 Bước 2: Thông số diện tích, kết cấu & pháp lý")
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            dien_tich = st.number_input(
-                "Diện tích đất / công nhận (m²)",
-                min_value=1.0,
-                value=max(1.0, default_num("dien_tich_m2", 52.0)),
-                step=1.0,
+    if not submitted:
+        with st.container(border=True):
+            st.markdown("### 👈 Bảng điều khiển đã sẵn sàng ở Thanh bên trái (Sidebar)")
+            st.write(
+                """
+                Toàn bộ các trường điều chỉnh (chọn Quận, Phường, kéo Diện tích, Số tầng, Pháp lý...)
+                đã được bố trí ở **Thanh bên trái (Sidebar)** để bạn vừa tùy biến thông số vừa theo dõi
+                kết quả hiển thị trực tiếp tại khung này.
+                """
             )
-            dien_tich_su_dung = st.number_input(
-                "Diện tích sử dụng (m²)",
-                min_value=0.0,
-                value=max(0.0, default_num("dien_tich_su_dung_m2", 120.0)),
-                step=1.0,
-            )
-            so_tang = st.number_input(
-                "Tổng số tầng",
-                min_value=1.0,
-                value=max(1.0, default_num("tong_so_tang", 3.0)),
-                step=1.0,
-            )
+            col_info1, col_info2, col_info3 = st.columns(3)
+            with col_info1:
+                st.metric("Vị trí đang chọn", f"{phuong}, {quan}")
+            with col_info2:
+                st.metric("Loại hình BĐS", str(loai_hinh))
+            with col_info3:
+                st.metric("Diện tích dự kiến", f"{dien_tich:.1f} m²")
+            st.caption("Nhấn nút **💰 Dự đoán giá** ở thanh bên trái để tính toán kết quả định giá chi tiết.")
 
-        with col2:
-            phong_ngu = st.number_input(
-                "Số phòng ngủ",
-                min_value=0.0,
-                value=max(0.0, default_num("so_phong_ngu", 3.0)),
-                step=1.0,
-            )
-            phong_wc = st.number_input(
-                "Số phòng vệ sinh",
-                min_value=0.0,
-                value=max(0.0, default_num("so_phong_ve_sinh", 3.0)),
-                step=1.0,
-            )
-            giay_to = st.selectbox("Giấy tờ pháp lý", options("giay_to_phap_ly"))
-
-        with col3:
-            chieu_ngang = st.number_input(
-                "Chiều ngang mặt tiền (m)",
-                min_value=0.0,
-                value=max(0.0, default_num("chieu_ngang_m", 4.0)),
-                step=0.1,
-            )
-            chieu_dai = st.number_input(
-                "Chiều dài (m)",
-                min_value=0.0,
-                value=max(0.0, default_num("chieu_dai_m", 13.0)),
-                step=0.1,
-            )
-            noi_that = st.selectbox("Tình trạng nội thất", options("tinh_trang_noi_that"))
-
-        dac_diem = st.selectbox("Đặc điểm vị trí / kết cấu (Hẻm xe hơi, Nở hậu, Mặt tiền...)", options("dac_diem"))
-
-        submitted = st.form_submit_button(
-            "💰 Dự đoán giá",
-            type="primary",
-            width="stretch",
-        )
 
     if submitted:
         market_vals = get_market_defaults(

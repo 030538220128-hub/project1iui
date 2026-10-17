@@ -366,19 +366,6 @@ def show_result(result: dict):
 # SIDEBAR & HEADER
 # =========================================================
 
-with st.sidebar:
-    st.markdown("### ⚠️ Module 2: Phát hiện bất thường")
-    st.caption("Kiến trúc Hybrid 4 tín hiệu kết hợp Supervised + Statistical + Unsupervised ML")
-    st.markdown(
-        """
-        **Công thức Composite Score (0–100):**
-        - **40% Residual-Z:** Độ lệch so với giá kỳ vọng OOF của XGBoost.
-        - **25% P10–P90:** Vượt ngoài 80% đơn giá phổ biến của Phường + Loại hình.
-        - **20% Historical Min/Max:** Vượt biên độ lịch sử của khu vực.
-        - **15% Isolation Forest:** Cô lập tổ hợp đặc trưng đa chiều dị biệt.
-        """
-    )
-
 st.markdown(
     """
     <div class="page-banner">
@@ -399,111 +386,52 @@ mode = st.radio(
     horizontal=True,
 )
 
-
-# =========================================================
-# MODE 1 — EXISTING
-# =========================================================
-
-if mode == "📚 Chọn tin có sẵn":
-    with st.container(border=True):
-        st.subheader("📚 Duyệt và kiểm tra các tin đăng trong tập dữ liệu (7,939 tin)")
-        f1, f2, f3 = st.columns([2, 2, 2])
-        with f1:
-            only_anomaly = st.checkbox("Chỉ hiển thị tin đã được gắn cờ anomaly (Top 5%)", value=True)
+with st.sidebar:
+    st.markdown("### 🎛️ Bảng điều khiển Anomaly")
+    if mode == "📚 Chọn tin có sẵn":
+        st.markdown("#### 🔍 Bộ lọc tin đăng")
+        only_anomaly = st.checkbox("Chỉ hiển thị tin đã được gắn cờ anomaly (Top 5%)", value=True)
         df = reference_rows.copy()
         if only_anomaly:
             df = df[df["is_anomaly"].fillna(False).astype(bool)]
 
-        with f2:
-            districts = sorted(df["quan"].dropna().astype(str).unique())
-            selected_district = st.selectbox("Quận", districts)
-            df = df[df["quan"].astype(str).eq(selected_district)]
+        districts = sorted(df["quan"].dropna().astype(str).unique())
+        selected_district = st.selectbox("Quận", districts)
+        df = df[df["quan"].astype(str).eq(selected_district)]
 
-        with f3:
-            anom_types = ["Tất cả"] + sorted(df["anomaly_type"].dropna().astype(str).unique().tolist())
-            selected_type = st.selectbox("Loại phân loại", anom_types)
-            if selected_type != "Tất cả":
-                df = df[df["anomaly_type"].astype(str).eq(selected_type)]
-
-        if df.empty:
-            st.warning("Không có tin đăng nào khớp với bộ lọc hiện tại.")
-            st.stop()
+        anom_types = ["Tất cả"] + sorted(df["anomaly_type"].dropna().astype(str).unique().tolist())
+        selected_type = st.selectbox("Loại phân loại", anom_types)
+        if selected_type != "Tất cả":
+            df = df[df["anomaly_type"].astype(str).eq(selected_type)]
 
         indices = df.index.tolist()
 
         def label(idx):
-            row = df.loc[idx]
-            title = str(row.get("tieu_de", "Không có tiêu đề"))
-            if len(title) > 90:
-                title = title[:87] + "..."
-            score = row.get("composite_score", np.nan)
-            return f"[{row.get('anomaly_type', '')} | Score: {score:.1f}] {title}"
+            r = df.loc[idx]
+            title = str(r.get("tieu_de", "Không có tiêu đề"))
+            if len(title) > 60:
+                title = title[:57] + "..."
+            score = r.get("composite_score", np.nan)
+            return f"[{r.get('anomaly_type', '')} | {score:.1f}đ] {title}"
 
-        selected_idx = st.selectbox("Chọn tin đăng cần xem chi tiết", indices, format_func=label)
-        row = df.loc[selected_idx]
-
-    with st.container(border=True):
-        st.subheader(str(row.get("tieu_de", "")))
-        st.caption(f"📍 Địa chỉ: {row.get('dia_chi', '')} | Loại hình: {row.get('loai_hinh', 'N/A')} | Diện tích: {row.get('dien_tich_m2', 0):.1f} m²")
-
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Giá đăng", f"{row['gia_ty']:.2f} tỷ")
-        c2.metric("Giá dự đoán OOF", f"{row['gia_du_doan_oof']:.2f} tỷ")
-        c3.metric("Composite Score", f"{row['composite_score']:.2f}")
-        c4.metric("Phân loại", row["anomaly_type"])
-
-        score_df = pd.DataFrame(
-            {
-                "Tín hiệu": [
-                    "1. Residual-Z (40%)",
-                    "2. Historical Min/Max (20%)",
-                    "3. P10–P90 (25%)",
-                    "4. Isolation Forest (15%)",
-                ],
-                "Score": [
-                    row["score_resid"],
-                    row["score_hist"],
-                    row["score_p1090"],
-                    row["score_iforest"],
-                ],
-            }
-        )
-        st.bar_chart(score_df.set_index("Tín hiệu"), horizontal=True)
-
-        if bool(row["is_anomaly"]):
-            st.warning(f"⚠️ Cảnh báo kiểm duyệt: **{row['anomaly_type']}**")
+        if not df.empty:
+            selected_idx = st.selectbox("Chọn tin đăng cần xem chi tiết", indices, format_func=label)
+            row = df.loc[selected_idx]
         else:
-            st.success("✅ Tin đăng Bình thường")
+            row = None
 
-        st.info("💡 **Giải thích XAI:** " + str(row["ly_do_bat_thuong"]))
+    elif mode == "✍️ Kiểm tra tin mới":
+        st.markdown("#### 📍 1. Vị trí & Loại hình")
+        quan_opts = options("quan")
+        default_quan_idx = 1 if len(quan_opts) > 1 else 0
+        quan = st.selectbox("Quận", quan_opts, index=default_quan_idx)
+        phuong = st.selectbox("Phường", phuong_options(quan))
+        loai_opts = options("loai_hinh")
+        default_loai_idx = 1 if len(loai_opts) > 1 else 0
+        loai_hinh = st.selectbox("Loại hình", loai_opts, index=default_loai_idx)
 
-
-# =========================================================
-# MODE 2 — NEW LISTING
-# =========================================================
-
-elif mode == "✍️ Kiểm tra tin mới":
-    with st.container(border=True):
-        st.subheader("📍 Bước 1: Vị trí và loại hình bất động sản")
-        st.caption("Chọn Quận để hệ thống tự động lọc danh sách Phường và tải ngưỡng tham chiếu P10–P90 tương ứng.")
-
-        loc_c1, loc_c2, loc_c3 = st.columns(3)
-        with loc_c1:
-            quan_opts = options("quan")
-            default_quan_idx = 1 if len(quan_opts) > 1 else 0
-            quan = st.selectbox("Quận", quan_opts, index=default_quan_idx)
-        with loc_c2:
-            phuong = st.selectbox("Phường", phuong_options(quan))
-        with loc_c3:
-            loai_opts = options("loai_hinh")
-            default_loai_idx = 1 if len(loai_opts) > 1 else 0
-            loai_hinh = st.selectbox("Loại hình", loai_opts, index=default_loai_idx)
-
-    with st.form("new_listing_form", border=True):
-        st.subheader("📐 Bước 2: Giá rao bán, diện tích và kết cấu")
-        c1, c2 = st.columns(2)
-
-        with c1:
+        with st.form("new_listing_form", border=True):
+            st.markdown("#### 📐 2. Giá rao & Kích thước")
             gia_ty = st.number_input("Giá bán rao trên tin (tỷ VNĐ)", min_value=0.1, value=7.0, step=0.1)
             dien_tich = st.number_input(
                 "Diện tích đất / công nhận (m²)",
@@ -515,8 +443,6 @@ elif mode == "✍️ Kiểm tra tin mới":
                 min_value=0.0,
                 value=max(0.0, num_default("dien_tich_su_dung_m2", 120.0)),
             )
-
-        with c2:
             phong_ngu = st.number_input(
                 "Phòng ngủ",
                 min_value=0.0,
@@ -532,30 +458,110 @@ elif mode == "✍️ Kiểm tra tin mới":
                 min_value=0.0,
                 value=max(0.0, num_default("tong_so_tang", 3.0)),
             )
+            ngang = st.number_input(
+                "Chiều ngang (m)",
+                min_value=0.0,
+                value=max(0.0, num_default("chieu_ngang_m", 4.0)),
+            )
+            dai = st.number_input(
+                "Chiều dài (m)",
+                min_value=0.0,
+                value=max(0.0, num_default("chieu_dai_m", 13.0)),
+            )
+            giay_to = st.selectbox("Giấy tờ pháp lý", options("giay_to_phap_ly"))
+            noi_that = st.selectbox("Nội thất", options("tinh_trang_noi_that"))
+            dac_diem = st.selectbox("Đặc điểm", options("dac_diem"))
 
-        with st.expander("🏠 Thông tin bổ sung (Kích thước ngang/dài, Pháp lý, Nội thất, Đặc điểm)"):
-            c1, c2 = st.columns(2)
-            with c1:
-                ngang = st.number_input(
-                    "Chiều ngang (m)",
-                    min_value=0.0,
-                    value=max(0.0, num_default("chieu_ngang_m", 4.0)),
-                )
-                dai = st.number_input(
-                    "Chiều dài (m)",
-                    min_value=0.0,
-                    value=max(0.0, num_default("chieu_dai_m", 13.0)),
-                )
-                giay_to = st.selectbox("Giấy tờ pháp lý", options("giay_to_phap_ly"))
-            with c2:
-                noi_that = st.selectbox("Nội thất", options("tinh_trang_noi_that"))
-                dac_diem = st.selectbox("Đặc điểm", options("dac_diem"))
+            submitted = st.form_submit_button(
+                "⚠️ Phân tích bất thường",
+                type="primary",
+                width="stretch",
+            )
 
-        submitted = st.form_submit_button(
-            "⚠️ Phân tích bất thường",
-            type="primary",
-            width="stretch",
+    else:
+        st.markdown("#### ⚙️ Cấu hình trọng số w₁..w₄")
+        method_choice = st.selectbox(
+            "Phương pháp phát hiện",
+            [
+                "Composite Score (Kết hợp 4 tín hiệu - Khuyên dùng)",
+                "Residual-z (Sai số dự đoán XGBoost)",
+                "Vi phạm Min/Max (Biên độ đơn giá)",
+                "Khoảng P10 - P90 (Bách phân vị đơn giá)",
+                "Isolation Forest (Bất thường đa chiều)",
+            ],
+            key="batch_anom_method",
         )
+        w_resid = st.slider("w1 (Residual-Z)", 0.0, 1.0, float(artifact["weights"]["resid"]), 0.05)
+        w_p1090 = st.slider("w2 (P10–P90)", 0.0, 1.0, float(artifact["weights"]["p1090"]), 0.05)
+        w_hist = st.slider("w3 (Historical)", 0.0, 1.0, float(artifact["weights"]["hist"]), 0.05)
+        w_if = st.slider("w4 (Isolation Forest)", 0.0, 1.0, float(artifact["weights"]["iforest"]), 0.05)
+        top_k_pct = st.slider("Top-k% gắn cờ", 1, 50, int(artifact["top_k"] * 100), 1)
+
+
+# =========================================================
+# MODE 1 — EXISTING
+# =========================================================
+
+if mode == "📚 Chọn tin có sẵn":
+    if row is None or df.empty:
+        st.warning("Không có tin đăng nào khớp với bộ lọc hiện tại ở thanh bên trái.")
+    else:
+        with st.container(border=True):
+            st.subheader(str(row.get("tieu_de", "")))
+            st.caption(f"📍 Địa chỉ: {row.get('dia_chi', '')} | Loại hình: {row.get('loai_hinh', 'N/A')} | Diện tích: {row.get('dien_tich_m2', 0):.1f} m²")
+
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Giá đăng", f"{row['gia_ty']:.2f} tỷ")
+            c2.metric("Giá dự đoán OOF", f"{row['gia_du_doan_oof']:.2f} tỷ")
+            c3.metric("Composite Score", f"{row['composite_score']:.2f}")
+            c4.metric("Phân loại", row["anomaly_type"])
+
+            score_df = pd.DataFrame(
+                {
+                    "Tín hiệu": [
+                        "1. Residual-Z (40%)",
+                        "2. Historical Min/Max (20%)",
+                        "3. P10–P90 (25%)",
+                        "4. Isolation Forest (15%)",
+                    ],
+                    "Score": [
+                        row["score_resid"],
+                        row["score_hist"],
+                        row["score_p1090"],
+                        row["score_iforest"],
+                    ],
+                }
+            )
+            st.bar_chart(score_df.set_index("Tín hiệu"), horizontal=True)
+
+            if bool(row["is_anomaly"]):
+                st.warning(f"⚠️ Cảnh báo kiểm duyệt: **{row['anomaly_type']}**")
+            else:
+                st.success("✅ Tin đăng Bình thường")
+
+            st.info("💡 **Giải thích XAI:** " + str(row["ly_do_bat_thuong"]))
+
+
+# =========================================================
+# MODE 2 — NEW LISTING
+# =========================================================
+
+elif mode == "✍️ Kiểm tra tin mới":
+    if not submitted:
+        with st.container(border=True):
+            st.markdown("### 👈 Bảng nhập liệu đã sẵn sàng ở Thanh bên trái (Sidebar)")
+            st.write(
+                """
+                Hãy nhập mức giá rao bán cùng thông số diện tích, vị trí và kết cấu của căn nhà
+                ở **Thanh bên trái (Sidebar)**, sau đó nhấn nút **⚠️ Phân tích bất thường**
+                để hệ thống chấm điểm Composite Score và đối chiếu 4 tín hiệu thị trường.
+                """
+            )
+            inf1, inf2 = st.columns(2)
+            with inf1:
+                st.metric("Vị trí kiểm tra", f"{phuong}, {quan}")
+            with inf2:
+                st.metric("Giá rao dự kiến", f"{gia_ty:.2f} tỷ VNĐ")
 
     if submitted:
         if quan == "Không rõ" or loai_hinh == "Không rõ":
@@ -595,8 +601,7 @@ else:
         st.write(
             """
             Tải lên file CSV chứa danh sách nhà **kèm cột giá bán thực tế** (`gia_ty`, `gia_ban`, `gia_m2` hoặc `don_gia`).
-            Hỗ trợ cả phương pháp **Composite Score (4 tín hiệu)** lẫn kiểm tra theo **từng phương pháp thành phần**
-            như gợi ý trong tài liệu hướng dẫn triển khai GUI.
+            Các thanh trượt điều chỉnh trọng số w₁..w₄ và ngưỡng Top-k% đã được chuyển sang **Thanh bên trái (Sidebar)**.
             """
         )
 
@@ -656,26 +661,6 @@ else:
             file_name="mau_kiem_tra_bat_thuong.csv",
             mime="text/csv",
         )
-
-        with st.expander("⚙️ Cấu hình phương pháp phát hiện, trọng số w1..w4 & ngưỡng lọc", expanded=True):
-            method_choice = st.selectbox(
-                "Phương pháp phát hiện bất thường",
-                [
-                    "Composite Score (Kết hợp 4 tín hiệu - Khuyên dùng)",
-                    "Residual-z (Sai số dự đoán XGBoost)",
-                    "Vi phạm Min/Max (Biên độ đơn giá)",
-                    "Khoảng P10 - P90 (Bách phân vị đơn giá)",
-                    "Isolation Forest (Bất thường đa chiều)",
-                ],
-                key="batch_anom_method",
-            )
-
-            wc1, wc2, wc3, wc4, wc5 = st.columns(5)
-            w_resid = wc1.slider("w1 (Residual-Z)", 0.0, 1.0, float(artifact["weights"]["resid"]), 0.05)
-            w_p1090 = wc2.slider("w2 (P10–P90)", 0.0, 1.0, float(artifact["weights"]["p1090"]), 0.05)
-            w_hist = wc3.slider("w3 (Historical)", 0.0, 1.0, float(artifact["weights"]["hist"]), 0.05)
-            w_if = wc4.slider("w4 (Isolation Forest)", 0.0, 1.0, float(artifact["weights"]["iforest"]), 0.05)
-            top_k_pct = wc5.slider("Top-k% gắn cờ", 1, 50, int(artifact["top_k"] * 100), 1)
 
         csv_anom = st.file_uploader(
             "Chọn file CSV có cột giá để kiểm tra bất thường",

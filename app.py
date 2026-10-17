@@ -77,6 +77,12 @@ with st.sidebar:
     st.markdown("### 🏠 Nhà Tốt AI Intelligence")
     st.caption("Đồ án Tốt nghiệp Data Science (DL07) — Trung tâm Tin học ĐH KHTN TP.HCM")
     st.divider()
+    st.markdown("#### 🧭 Điều hướng nhanh")
+    st.page_link("app.py", label="Trang chủ", icon="🏠")
+    st.page_link("pages/1_House_Price_Prediction.py", label="1. Dự đoán giá nhà", icon="💰")
+    st.page_link("pages/2_Anomaly_Detection.py", label="2. Phát hiện bất thường", icon="⚠️")
+    st.page_link("pages/3_Market_Overview.py", label="3. Thị trường & Mô hình", icon="📊")
+    st.divider()
     st.markdown(
         """
         **Phạm vi dữ liệu:**
@@ -88,7 +94,15 @@ with st.sidebar:
         """
     )
     st.divider()
-    st.caption("Chọn chức năng ở thanh điều hướng phía trên để bắt đầu.")
+    st.markdown("#### 👥 Thành viên thực hiện")
+    st.markdown(
+        """
+        - 👤 **Lê Văn Toàn**  
+          📧 `toanlevan2808@gmail.com`
+        - 👤 **Chung Tiến Quang**  
+          📧 `Dongtachungtienquang@gmail.com`
+        """
+    )
 
 
 st.markdown(

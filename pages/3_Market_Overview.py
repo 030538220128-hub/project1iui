@@ -53,9 +53,20 @@ def load_clean_data(path: Path) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
+try:
+    df = load_clean_data(DATA_PATH)
+except Exception as e:
+    st.error(f"Không thể đọc dữ liệu: {e}")
+    st.stop()
+
+
 with st.sidebar:
-    st.markdown("### 📊 Module 3: Dashboard & Benchmark")
-    st.caption("Tổng hợp phân tích EDA 3 quận & kết quả thực nghiệm 8 mô hình ML")
+    st.markdown("### 🎛️ Bộ lọc thị trường")
+    st.caption("Tùy chỉnh phạm vi thống kê EDA và phân tích thị trường")
+    st.divider()
+    filter_quan = st.selectbox("Lọc theo Quận", ["Tất cả"] + sorted(df["quan"].dropna().unique().tolist()))
+    filter_loai = st.selectbox("Lọc theo Loại hình", ["Tất cả"] + sorted(df["loai_hinh"].dropna().unique().tolist()))
+    st.divider()
     st.markdown(
         """
         **Nội dung chính:**
@@ -75,22 +86,23 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-try:
-    df = load_clean_data(DATA_PATH)
-except Exception as e:
-    st.error(f"Không thể đọc dữ liệu: {e}")
-    st.stop()
-
+# Áp dụng bộ lọc từ sidebar
+df_view = df.copy()
+if filter_quan != "Tất cả":
+    df_view = df_view[df_view["quan"].eq(filter_quan)]
+if filter_loai != "Tất cả":
+    df_view = df_view[df_view["loai_hinh"].eq(filter_loai)]
 
 # =========================================================
 # 1. KPI THỊ TRƯỜNG 3 QUẬN
 # =========================================================
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Tổng số tin sạch", f"{len(df):,}")
-c2.metric("Giá bán trung vị", f"{df['gia_ty'].median():.2f} tỷ VNĐ")
-c3.metric("Đơn giá trung vị", f"{df['gia_m2_calc'].median():.1f} triệu/m²")
-c4.metric("Số tin bất thường (Top 5%)", f"{int(df['is_anomaly'].sum()):,}")
+c1.metric("Tổng số tin sạch", f"{len(df_view):,}")
+c2.metric("Giá bán trung vị", f"{df_view['gia_ty'].median():.2f} tỷ VNĐ" if not df_view.empty else "N/A")
+c3.metric("Đơn giá trung vị", f"{df_view['gia_m2_calc'].median():.1f} triệu/m²" if not df_view.empty else "N/A")
+c4.metric("Số tin bất thường (Top 5%)", f"{int(df_view['is_anomaly'].sum()):,}" if not df_view.empty else "0")
+
 
 st.write("")
 with st.container(border=True):
