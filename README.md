@@ -1,6 +1,12 @@
-# House Price Intelligence (Project 1)
+# House Price Intelligence (Project 1 — Nhà Tốt)
 
 Ứng dụng Streamlit định giá bất động sản và phát hiện tin đăng bất thường tại 3 quận TP.HCM (**Bình Thạnh, Gò Vấp, Phú Nhuận**).
+
+- 🌐 **Live Demo:** [https://project1iui-74ixm6xxkjzeutpe7qbvt5.streamlit.app/](https://project1iui-74ixm6xxkjzeutpe7qbvt5.streamlit.app/)
+- 🎓 **Khóa học:** Đồ án Tốt nghiệp Data Science (DL07) — Trung tâm Tin học ĐH Khoa học Tự nhiên TP.HCM
+- 👥 **Nhóm học viên thực hiện:**
+  - **Lê Văn Toàn** — `toanlevan2808@gmail.com`
+  - **Chung Tiến Quang** — `Dongtachungtienquang@gmail.com`
 
 ## Giới thiệu tính năng
 

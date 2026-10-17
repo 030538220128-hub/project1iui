@@ -290,6 +290,18 @@ with st.sidebar:
             width="stretch",
         )
 
+    st.divider()
+    st.markdown("#### 👥 Thành viên thực hiện")
+    st.markdown(
+        """
+        - 👤 **Lê Văn Toàn**  
+          📧 `toanlevan2808@gmail.com`
+        - 👤 **Chung Tiến Quang**  
+          📧 `Dongtachungtienquang@gmail.com`
+        """
+    )
+    st.caption("Data Science (DL07) — ĐH KHTN TP.HCM")
+
 st.markdown(
     """
     <div class="page-banner">

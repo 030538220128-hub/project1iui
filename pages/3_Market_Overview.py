@@ -75,6 +75,17 @@ with st.sidebar:
         - **3. Thống kê Anomaly:** Tỷ lệ phân bố Quá đắt / Quá rẻ / Cấu trúc.
         """
     )
+    st.divider()
+    st.markdown("#### 👥 Thành viên thực hiện")
+    st.markdown(
+        """
+        - 👤 **Lê Văn Toàn**  
+          📧 `toanlevan2808@gmail.com`
+        - 👤 **Chung Tiến Quang**  
+          📧 `Dongtachungtienquang@gmail.com`
+        """
+    )
+    st.caption("Data Science (DL07) — ĐH KHTN TP.HCM")
 
 st.markdown(
     """

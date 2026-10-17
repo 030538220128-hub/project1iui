@@ -497,6 +497,18 @@ with st.sidebar:
         w_if = st.slider("w4 (Isolation Forest)", 0.0, 1.0, float(artifact["weights"]["iforest"]), 0.05)
         top_k_pct = st.slider("Top-k% gắn cờ", 1, 50, int(artifact["top_k"] * 100), 1)
 
+    st.divider()
+    st.markdown("#### 👥 Thành viên thực hiện")
+    st.markdown(
+        """
+        - 👤 **Lê Văn Toàn**  
+          📧 `toanlevan2808@gmail.com`
+        - 👤 **Chung Tiến Quang**  
+          📧 `Dongtachungtienquang@gmail.com`
+        """
+    )
+    st.caption("Data Science (DL07) — ĐH KHTN TP.HCM")
+
 
 # =========================================================
 # MODE 1 — EXISTING
